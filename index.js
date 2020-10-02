@@ -7,7 +7,7 @@
  */
 
 'use strict';
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
     requireNativeComponent,
@@ -15,12 +15,14 @@ import {
     Platform,
     ViewPropTypes,
     StyleSheet,
-    Image
+    Image,
+    Text
 } from 'react-native';
 
 import { ProgressBar } from '@react-native-community/progress-bar-android'
 import { ProgressView } from '@react-native-community/progress-view'
 import * as Progress from 'react-native-progress'
+
 
 import RNFetchBlob from 'rn-fetch-blob';
 
@@ -87,7 +89,7 @@ export default class Pdf extends Component {
         enableAnnotationRendering: true,
         enablePaging: false,
         enableRTL: false,
-        activityIndicatorProps: {color: '#009900', progressTintColor: '#009900'},
+        activityIndicatorProps: { color: '#009900', progressTintColor: '#009900' },
         trustAllCerts: true,
         usePDFKit: true,
         singlePage: false,
@@ -114,7 +116,8 @@ export default class Pdf extends Component {
             path: '',
             isDownloaded: false,
             progress: 0,
-            isSupportPDFKit: -1
+            isSupportPDFKit: -1,
+            receivedData: 0,
         };
 
         this.lastRNBFTask = null;
@@ -145,7 +148,7 @@ export default class Pdf extends Component {
             const PdfViewManagerNative = require('react-native').NativeModules.PdfViewManager;
             PdfViewManagerNative.supportPDFKit((isSupportPDFKit) => {
                 if (this._mounted) {
-                    this.setState({isSupportPDFKit: isSupportPDFKit ? 1 : 0});
+                    this.setState({ isSupportPDFKit: isSupportPDFKit ? 1 : 0 });
                 }
             });
         }
@@ -170,7 +173,7 @@ export default class Pdf extends Component {
 
         // first set to initial state
         if (this._mounted) {
-            this.setState({isDownloaded: false, path: '', progress: 0});
+            this.setState({ isDownloaded: false, path: '', progress: 0 });
         }
 
         const cacheFile = RNFetchBlob.fs.dirs.CacheDir + '/' + SHA1(uri) + '.pdf';
@@ -181,7 +184,7 @@ export default class Pdf extends Component {
                 .then(stats => {
                     if (!Boolean(source.expiration) || (source.expiration * 1000 + stats.lastModified) > (new Date().getTime())) {
                         if (this._mounted) {
-                            this.setState({path: cacheFile, isDownloaded: true});
+                            this.setState({ path: cacheFile, isDownloaded: true });
                         }
                     } else {
                         // cache expirated then reload it
@@ -219,7 +222,7 @@ export default class Pdf extends Component {
                         .cp(uri, cacheFile)
                         .then(() => {
                             if (this._mounted) {
-                                this.setState({path: cacheFile, isDownloaded: true, progress: 1});
+                                this.setState({ path: cacheFile, isDownloaded: true, progress: 1 });
                             }
                         })
                         .catch(async (error) => {
@@ -232,7 +235,7 @@ export default class Pdf extends Component {
                         .writeFile(cacheFile, data, 'base64')
                         .then(() => {
                             if (this._mounted) {
-                                this.setState({path: cacheFile, isDownloaded: true, progress: 1});
+                                this.setState({ path: cacheFile, isDownloaded: true, progress: 1 });
                             }
                         })
                         .catch(async (error) => {
@@ -241,7 +244,7 @@ export default class Pdf extends Component {
                         });
                 } else {
                     if (this._mounted) {
-                       this.setState({
+                        this.setState({
                             path: uri.replace(/file:\/\//i, ''),
                             isDownloaded: true,
                         });
@@ -281,10 +284,13 @@ export default class Pdf extends Component {
             )
             // listen to download progress event
             .progress((received, total) => {
+                // console.log("ABC : ", received)
                 this.props.onLoadProgress && this.props.onLoadProgress(received / total);
                 if (this._mounted) {
-                    this.setState({progress: received / total});
+                    var rec = (received / (1024 * 1024)).toFixed(2)
+                    this.setState({ progress: received / total, receivedData: rec });
                 }
+
             });
 
         this.lastRNBFTask
@@ -318,7 +324,7 @@ export default class Pdf extends Component {
                     .cp(tempCacheFile, cacheFile)
                     .then(() => {
                         if (this._mounted) {
-                            this.setState({path: cacheFile, isDownloaded: true, progress: 1});
+                            this.setState({ path: cacheFile, isDownloaded: true, progress: 1 });
                         }
                         this._unlinkFile(tempCacheFile);
                     })
@@ -343,13 +349,13 @@ export default class Pdf extends Component {
     }
 
     setNativeProps = nativeProps => {
-        if (this._root){
+        if (this._root) {
             this._root.setNativeProps(nativeProps);
         }
     };
 
-    setPage( pageNumber ) {
-        if ( (pageNumber === null) || (isNaN(pageNumber)) ) {
+    setPage(pageNumber) {
+        if ((pageNumber === null) || (isNaN(pageNumber))) {
             throw new Error('Specified pageNumber is not a number');
         }
         this.setNativeProps({
@@ -370,7 +376,7 @@ export default class Pdf extends Component {
                     width: Number(message[2]),
                     height: Number(message[3]),
                 },
-                message[4]&&JSON.parse(message[4]));
+                    message[4] && JSON.parse(message[4]));
             } else if (message[0] === 'pageChanged') {
                 this.props.onPageChanged && this.props.onPageChanged(Number(message[1]), Number(message[2]));
             } else if (message[0] === 'error') {
@@ -394,58 +400,61 @@ export default class Pdf extends Component {
 
     render() {
         if (Platform.OS === "android" || Platform.OS === "ios") {
-                return (
-                    <View style={[this.props.style,{overflow: 'hidden'}]}>
-                        {!this.state.isDownloaded?
-                            (<View
-                                style={styles.progressContainer}
-                            >
-                                {this.props.activityIndicator
-                                    ? this.props.activityIndicator
-                                    : Platform.OS === 'android'
-                                        ? <Progress.Bar 
-                                               indeterminate={false}
-                                               progress={this.state.progress} 
-                                               style={styles.progressBar}
-                                               {...this.props.activityIndicatorProps}
-                                         />
-                                        : <ProgressView
-                                            progress={this.state.progress}
-                                            style={styles.progressBar}
-                                            {...this.props.activityIndicatorProps}
-                                        />}
-                            </View>):(
-                                Platform.OS === "android"?(
+            return (
+                <View style={[this.props.style, { overflow: 'hidden' }]}>
+                    {!this.state.isDownloaded ?
+                        (<View style={{ flex: 1, justifyContent: 'center', alignSelf: 'center', alignItems: 'center', width: '100%' }}
+                        >
+                            {this.props.activityIndicator
+                                ? this.props.activityIndicator
+                                : Platform.OS === 'android'
+                                    ?
+                                    <Progress.Circle
+                                        formatText={(progress) => {
+                                            return (
+                                                <Text style={{ width: "100%", textAlign: 'center', fontFamily: 'cocon' }}> {this.state.receivedData} MB </Text>
+                                            )
+                                        }}
+                                        progress={this.state.progress}
+                                        {...this.props.activityIndicatorProps}
+                                        showsText size={75} />
+                                    : <ProgressView
+                                        progress={this.state.progress}
+                                        style={styles.progressBar}
+                                        {...this.props.activityIndicatorProps}
+                                    />}
+                        </View>) : (
+                            Platform.OS === "android" ? (
+                                <PdfCustom
+                                    ref={component => (this._root = component)}
+                                    {...this.props}
+                                    style={[{ flex: 1, backgroundColor: '#EEE' }, this.props.style]}
+                                    path={this.state.path}
+                                    onChange={this._onChange}
+                                />
+                            ) : (
+                                    this.props.usePDFKit && this.state.isSupportPDFKit === 1 ? (
                                         <PdfCustom
                                             ref={component => (this._root = component)}
                                             {...this.props}
-                                            style={[{flex:1,backgroundColor: '#EEE'}, this.props.style]}
+                                            style={[{ backgroundColor: '#EEE', overflow: 'hidden' }, this.props.style]}
                                             path={this.state.path}
                                             onChange={this._onChange}
                                         />
-                                    ):(
-                                        this.props.usePDFKit && this.state.isSupportPDFKit === 1?(
-                                                <PdfCustom
-                                                    ref={component => (this._root = component)}
-                                                    {...this.props}
-                                                    style={[{backgroundColor: '#EEE',overflow: 'hidden'}, this.props.style]}
-                                                    path={this.state.path}
-                                                    onChange={this._onChange}
-                                                />
-                                            ):(<PdfView
-                                                {...this.props}
-                                                style={[{backgroundColor: '#EEE',overflow: 'hidden'}, this.props.style]}
-                                                path={this.state.path}
-                                                onLoadComplete={this.props.onLoadComplete}
-                                                onPageChanged={this.props.onPageChanged}
-                                                onError={this._onError}
-                                                onPageSingleTap={this.props.onPageSingleTap}
-                                                onScaleChanged={this.props.onScaleChanged}
-                                                onPressLink={this.props.onPressLink}
-                                            />)
-                                    )
-                                )}
-                    </View>);
+                                    ) : (<PdfView
+                                        {...this.props}
+                                        style={[{ backgroundColor: '#EEE', overflow: 'hidden' }, this.props.style]}
+                                        path={this.state.path}
+                                        onLoadComplete={this.props.onLoadComplete}
+                                        onPageChanged={this.props.onPageChanged}
+                                        onError={this._onError}
+                                        onPageSingleTap={this.props.onPageSingleTap}
+                                        onScaleChanged={this.props.onScaleChanged}
+                                        onPressLink={this.props.onPressLink}
+                                    />)
+                                )
+                        )}
+                </View>);
         } else {
             return (null);
         }
@@ -457,11 +466,11 @@ export default class Pdf extends Component {
 
 if (Platform.OS === "android") {
     var PdfCustom = requireNativeComponent('RCTPdf', Pdf, {
-        nativeOnly: {path: true, onChange: true},
+        nativeOnly: { path: true, onChange: true },
     })
 } else if (Platform.OS === "ios") {
     var PdfCustom = requireNativeComponent('RCTPdfView', Pdf, {
-        nativeOnly: {path: true, onChange: true},
+        nativeOnly: { path: true, onChange: true },
     })
 }
 
@@ -474,6 +483,6 @@ const styles = StyleSheet.create({
     },
     progressBar: {
         width: 200,
-        height: 2
+        height: 20
     }
 });
