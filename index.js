@@ -403,13 +403,12 @@ export default class Pdf extends Component {
                                 {this.props.activityIndicator
                                     ? this.props.activityIndicator
                                     : Platform.OS === 'android'
-                                        ? <ProgressBar
-                                            progress={this.state.progress}
-                                            indeterminate={false}
-                                            styleAttr="Horizontal"
-                                            style={styles.progressBar}
-                                            {...this.props.activityIndicatorProps}
-                                        />
+                                        ? <Progress.Bar 
+                                               indeterminate={false}
+                                               progress={this.state.progress} 
+                                               style={styles.progressBar}
+                                               {...this.props.activityIndicatorProps}
+                                         />
                                         : <ProgressView
                                             progress={this.state.progress}
                                             style={styles.progressBar}
