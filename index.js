@@ -20,6 +20,7 @@ import {
 
 import { ProgressBar } from '@react-native-community/progress-bar-android'
 import { ProgressView } from '@react-native-community/progress-view'
+import * as Progress from 'react-native-progress'
 
 import RNFetchBlob from 'rn-fetch-blob';
 
