@@ -1,13 +1,13 @@
 {
     "name": "react-native-pdf",
-    "version": "6.2.1",
+    "version": "6.2.2",
     "summary": "A react native PDF view component",
     "description": "A react native PDF view component, support ios and android platform",
     "main": "index.js",
     "typings": "./index.d.ts",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/wonday/react-native-pdf.git"
+        "url": "git+https://github.com/Kewal89/react-native-pdf.git"
     },
     "keywords": [
         "react-component",
